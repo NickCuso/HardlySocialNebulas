@@ -2,7 +2,7 @@
 // Built for Nebulas by HardlyDifficult.  youtube.com/HardlyDifficult
 // License: MIT (https://github.com/hardlydifficult/HardlySocialNebulas/blob/master/LICENSE)
 //
-// See also HardlySocial.html
+// See also index.html
 
 var HardlySocialContract = function() {
   // Data stored by the smart contract
