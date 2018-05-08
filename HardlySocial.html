@@ -1,0 +1,140 @@
+<!-- 
+HardlySocial stores one message per user.  Users can come back to update their message anytime.
+Built for Nebulas by HardlyDifficult.  youtube.com/HardlyDifficult
+License: MIT (https://github.com/hardlydifficult/HardlySocialNebulas/blob/master/LICENSE) 
+
+See also HardlySocialContract.js
+-->
+
+<!doctype html>
+<html>
+<head>
+    <meta charset=utf-8>
+    <title>Hardly Remembers</title>
+    <link rel=stylesheet href=css/ui-block.css>
+</head>
+<body>
+    <!-- This pulls in the 'Select Wallet File' (incl Password) from Neb's library -->
+    <div class=select-wallet-file></div>
+
+    <br><br>
+
+    <!-- Message history -->
+    <div id=message_history></div>
+
+    <!-- The Dapp form -->
+    <textarea id=my_message></textarea>
+    <button id=post_message disabled onclick="javascript:onClickPostMessage()">Post message</button>
+    <button id=refresh onclick="javascript:onClickRefresh()">Refresh</button>
+
+    <!-- All of these scripts are dependancies from the Nebulas Web Wallet -->
+    <script src=lib/jquery-3.3.1.min.js></script>
+    <script src=lib/nebulas.js></script>
+    <script src=js/1-localSave.js></script>
+    <script src=js/i18n.js data-depends=jquery.slim></script>
+    <script src=js/ui-block.js data-depends="bootbox blockies jquery.slim i18n.js nebulas.js"></script> 
+    
+    <!-- Front end logic for our Dapp -->
+    <script>
+        "use strict";
+
+        // Global variables used by our Dapp
+        var contract_address = "n22FYgAabaa2r1hZqD1Jbk6Rz2wsRp68K6E";
+        var user_account = null;
+
+        // Gas hard coded for simplicity, ideally your app would allow for changing the gas price, etc.
+        var is_mainnet = false;
+        var nebulas_chain_id, nebulas_domain; 
+        var gas_price = 1000000;
+        var gas_limit = 200000;
+
+        if(is_mainnet) {
+            nebulas_chain_id = 1;
+            nebulas_domain = "https://mainnet.nebulas.io";
+        } else {
+            nebulas_chain_id = 1001;
+            nebulas_domain = "https://testnet.nebulas.io";
+        }
+
+        // The nebulas API, used for signing transactions, etc
+        var nebulas = require("nebulas");
+        var neb = new nebulas.Neb();
+        neb.setRequest(new nebulas.HttpRequest(nebulas_domain));
+
+        // Adds the wallet selection workflow, from the Nebulas wallet
+        uiBlock.insert({
+            selectWalletFile: [".select-wallet-file", onUnlockFile]
+        });
+
+        // Called by the Refresh button
+        function onClickRefresh() {
+            neb.api.call({
+                from: contract_address, // Using the contract here so this can be called without loggin on.
+                to: contract_address,
+                value: 0,
+                nonce: 0, // Nonce is irrelavant when read-only (there is no transaction charge)
+                gasPrice: gas_price,
+                gasLimit: gas_limit,
+                contract: {function: "getMessages"}                        
+            }).then(function (resp) {
+                $("#message_history").empty();
+
+                var messages = JSON.parse(resp.result);
+                for(var i = 0; i < messages.length; i++) {
+                    var $span = $("<span></span>").text(messages[i]);
+                    $("#message_history").append($span);
+                    $("#message_history").append("<br><hr><br>");
+                }
+            });
+
+            if(user_account) {
+                // This second call only happens when the user is logged in
+                neb.api.call({
+                    from: user_account.getAddressString(),
+                    to: contract_address,
+                    value: 0,
+                    nonce: 0, // Nonce is irrelavant when read-only (there is no transaction charge)
+                    gasPrice: gas_price,
+                    gasLimit: gas_limit,
+                    contract: {function: "getMyMessage"}                        
+                }).then(function (resp) {
+                    var message = JSON.parse(resp.result);
+                    $("#my_message").val(message); 
+                });
+            }            
+        }
+
+        // Called by the post button
+        function onClickPostMessage() {
+            // Every transaction has a sequential ID, called 'Nonce'.  Required to sign a message (but not for reading information)
+            neb.api.getAccountState(user_account.getAddressString())
+            .then(function (resp) {
+                var nonce = parseInt(resp.nonce) + 1;
+                var gTx = new nebulas.Transaction(
+                    nebulas_chain_id,
+                    user_account,
+                    contract_address,
+                    0,
+                    nonce,
+                    gas_price,
+                    gas_limit,
+                    {function: "postMessage", args: JSON.stringify([$("#my_message").val()])}); 
+
+                gTx.signTransaction();
+                neb.api.sendRawTransaction(gTx.toProtoString());
+            });            
+        }
+
+        // Called by the Nebulas library when the user selects their wallet file and enters the password.
+        function onUnlockFile(swf, fileJson, account, password) {
+            account.fromKey(fileJson, password); // Load account information 
+            user_account = account; // Save it in a global variable
+
+            // Enables buttons so the user may now use the Dapp
+            $("#post_message").attr("disabled", false);                
+        }
+
+        onClickRefresh();
+    </script>
+</body>
+</html>
