@@ -1,6 +1,6 @@
 // HardlySocial stores one message per user.  Users can come back to update their message anytime.
 // Built for Nebulas by HardlyDifficult.  youtube.com/HardlyDifficult
-// License: MIT (https://github.com/hardlydifficult/HardlySocialNebulas/blob/master/LICENSE)
+// License: https://github.com/hardlydifficult/HardlySocialNebulas/blob/master/LICENSE
 //
 // See also index.html
 
