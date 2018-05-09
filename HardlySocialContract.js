@@ -14,7 +14,7 @@ var HardlySocialContract = function() {
 HardlySocialContract.prototype = {
   // init is called once, when the contract is deployed.
   init: function() {
-    this.user_count = 1; // The first user_id should be 1 (not 0)
+    this.user_count = 1; // The first id should be 1 (not 0)
   },
 
   // If the user is new: Add a new message to the system
